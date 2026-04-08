@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  # ==========================================
+  # 1. MONGODB (Base de Datos Principal)
+  # ==========================================
+  mongo:
+    image: mongo:7
+    container_name: tokatribe-mongo
+    command: mongod --replSet rs0 --bind_ip_all
+    ports:
+      # Zero Trust: Solo accesible desde el localhost del servidor VPS
+      - "127.0.0.1:27017:27017"
+    volumes:
+      # Se mapea a la carpeta local data/ para persistencia segura
+      - ./data/mongo:/data/db
+    networks:
+      - tokatribe_network
+    restart: always
+
+  # Inicializador automático del Replica Set (necesario para transacciones)
+  mongo-init:
+    image: mongo:7
+    container_name: tokatribe-mongo-init
+    depends_on:
+      - mongo
+    networks:
+      - tokatribe_network
+    volumes:
+      - ./scripts/init-mongo.sh:/scripts/init-mongo.sh
+    entrypoint: [ "bash", "/scripts/init-mongo.sh" ]
+
+  # ==========================================
+  # 2. REDIS (Caché y WebSockets)
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: tokatribe-redis
+    # Forzamos autenticación con contraseña mediante variable de entorno
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      # Zero Trust: Solo accesible desde el localhost del servidor VPS
+      - "127.0.0.1:6379:6379"
+    volumes:
+      # Se mapea a la carpeta local data/ para persistencia segura
+      - ./data/redis:/data
+    networks:
+      - tokatribe_network
+    restart: always
+
+# ==========================================
+# CONFIGURACIÓN DE RED
+# ==========================================
+networks:
+  tokatribe_network:
+    driver: bridge
+    name: tokatribe_network
