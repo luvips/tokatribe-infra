@@ -9,7 +9,7 @@ services:
     container_name: tokatribe-mongo
     env_file:
       - .env
-    command: mongod --replSet rs0 --bind_ip_all --auth
+    command: mongod --replSet rs0 --bind_ip_all --auth --keyFile /etc/mongo-keyfile
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
@@ -22,6 +22,7 @@ services:
     volumes:
       # Se mapea a la carpeta local data/ para persistencia segura
       - ./data/mongo:/data/db
+      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
     networks:
       - tokatribe_network
     restart: always
